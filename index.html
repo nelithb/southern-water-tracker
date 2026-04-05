@@ -122,6 +122,30 @@ body{font-family:'Mulish',sans-serif;background:#fff;color:#1a1a1a;line-height:1
 #footer a{color:rgba(255,255,255,0.7)}
 .credit{font-size:11px;opacity:0.3;margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06)}
 
+/* ── Map search ── */
+.map-search{position:absolute;top:12px;right:12px;z-index:700;width:260px}
+.map-search-wrap{position:relative}
+.map-search-input{width:100%;padding:10px 12px 10px 34px;border:1px solid rgba(255,255,255,0.2);border-radius:10px;background:rgba(255,255,255,0.95);font-family:'Mulish',sans-serif;font-size:13px;color:#1a1a1a;outline:none;backdrop-filter:blur(8px);box-shadow:0 2px 12px rgba(0,0,0,0.15)}
+.map-search-input::placeholder{color:#999}
+.map-search-input:focus{border-color:#1a1a1a;background:#fff}
+.map-search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);pointer-events:none;color:#999;display:flex}
+.map-search-dd{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.18);overflow:hidden;display:none}
+.map-search-dd.open{display:block}
+.map-search-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13px;color:#1a1a1a;cursor:pointer;transition:background 0.1s;border-bottom:1px solid #f0f0f0}
+.map-search-opt:last-child{border-bottom:none}
+.map-search-opt:hover,.map-search-opt.active{background:#f5f5f5}
+.map-search-opt svg{flex-shrink:0;color:#888}
+.map-search-opt .opt-sub{font-size:10px;color:#999;margin-top:1px}
+.map-search-opt.loc-opt{color:#1da1f2;font-weight:600}
+.map-search-opt.loc-opt svg{color:#1da1f2}
+.map-search-msg{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border-radius:10px;padding:10px 14px;font-size:12px;color:#e63946;box-shadow:0 4px 20px rgba(0,0,0,0.18)}
+.map-search-msg.success{color:#2d9a46}
+@keyframes locpulse{0%{box-shadow:0 0 0 0 rgba(29,161,242,0.5)}70%{box-shadow:0 0 0 12px rgba(29,161,242,0)}100%{box-shadow:0 0 0 0 rgba(29,161,242,0)}}
+.loc-pulse{animation:locpulse 2s infinite}
+@media(max-width:767px){
+  .map-search{top:8px;right:8px;left:48px;width:auto}
+}
+
 /* ── Map filters ── */
 .mf{padding:7px 16px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#555;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.15s}
 .mf:hover{background:#f0f0f0;color:#1a1a1a}
@@ -168,8 +192,18 @@ body{font-family:'Mulish',sans-serif;background:#fff;color:#1a1a1a;line-height:1
     <button class="mf" data-f="unverified" onclick="filterMap('unverified')">No verified contract</button>
     <button class="mf" data-f="verified" onclick="filterMap('verified')">Verified contract</button>
     <button class="mf" data-f="high" onclick="filterMap('high')">High spill (&gt;10h)</button>
+    <button class="mf" data-f="none" onclick="filterMap('none')">Clear map</button>
   </div>
-  <div id="main-map"></div>
+  <div id="map-wrap" style="position:relative">
+    <div id="main-map"></div>
+    <div class="map-search" id="map-search">
+      <div class="map-search-wrap">
+        <svg class="map-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="map-search-input" id="search-input" type="text" placeholder="Postcode or place name..." autocomplete="off">
+        <div class="map-search-dd" id="search-dd"></div>
+      </div>
+    </div>
+  </div>
   <div id="map-legend">
     <div class="ml-row"><div class="ml-dot" style="background:#e63946"></div> High spill (&gt;10 hours)</div>
     <div class="ml-row"><div class="ml-dot" style="background:#f4a261"></div> Moderate (1–10 hours)</div>
@@ -315,7 +349,8 @@ function filterMap(mode){
   window._siteMarkers.forEach(m=>{
     const d=m._siteData;
     let show=true;
-    if(mode==='unverified')show=!d.hasContract;
+    if(mode==='none')show=false;
+    else if(mode==='unverified')show=!d.hasContract;
     else if(mode==='verified')show=d.hasContract;
     else if(mode==='high')show=d.size>10;
     m.setStyle({opacity:show?1:0,fillOpacity:show?(d.size>10?0.9:d.size>1?0.7:0.4):0});
@@ -532,6 +567,168 @@ function showSupplier(sid){
 
   openSB(h);
 }
+
+// ── Search & Geolocation ──
+let _searchMarker=null,_searchDebounce=null,_ddIndex=-1;
+// Southern Water coverage region (generous bounds: Kent to Hampshire + coast)
+const SW_BOUNDS={latMin:50.4,latMax:51.5,lonMin:-2.0,lonMax:1.5};
+function inRegion(lat,lon){return lat>=SW_BOUNDS.latMin&&lat<=SW_BOUNDS.latMax&&lon>=SW_BOUNDS.lonMin&&lon<=SW_BOUNDS.lonMax}
+const searchInput=()=>document.getElementById('search-input');
+const searchDD=()=>document.getElementById('search-dd');
+
+function clearSearchMarker(){if(_searchMarker){lmap.removeLayer(_searchMarker);_searchMarker=null}}
+
+function showSearchMsg(text,isError){
+  const dd=searchDD();dd.classList.remove('open');
+  const existing=document.querySelector('.map-search-msg');if(existing)existing.remove();
+  const el=document.createElement('div');
+  el.className='map-search-msg'+(isError?'':' success');
+  el.textContent=text;
+  document.querySelector('.map-search-wrap').appendChild(el);
+  setTimeout(()=>el.remove(),4000);
+}
+
+function dropSearchPin(lat,lon,label){
+  clearSearchMarker();
+  _searchMarker=L.circleMarker([lat,lon],{radius:8,fillColor:'#1da1f2',fillOpacity:0.9,color:'#fff',weight:2,className:'loc-pulse'}).addTo(lmap);
+  if(label)_searchMarker.bindTooltip(label,{permanent:true,direction:'top',className:''}).openTooltip();
+  setTimeout(clearSearchMarker,10000);
+}
+
+function showDD(items){
+  const dd=searchDD();_ddIndex=-1;
+  if(!items.length){dd.classList.remove('open');return}
+  dd.innerHTML=items.map((it,i)=>
+    `<div class="map-search-opt${it.loc?' loc-opt':''}" data-idx="${i}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">${it.loc
+        ?'<path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/>'
+        :'<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/>'}</svg>
+      <div><div>${it.label}</div>${it.sub?'<div class="opt-sub">'+it.sub+'</div>':''}</div>
+    </div>`
+  ).join('');
+  dd.classList.add('open');
+  dd.querySelectorAll('.map-search-opt').forEach(el=>{
+    el.addEventListener('mousedown',e=>{e.preventDefault();pickOption(items[+el.dataset.idx])});
+  });
+}
+
+function pickOption(item){
+  const dd=searchDD(),inp=searchInput();
+  dd.classList.remove('open');
+  if(item.loc){
+    useMyLocation();
+    inp.value='';
+  } else if(item.postcode){
+    inp.value=item.postcode;
+    goToPostcode(item.postcode);
+  } else if(item.place){
+    inp.value=item.label;
+    goToPlace(item.label);
+  }
+}
+
+function goToPostcode(pc){
+  fetch('https://api.postcodes.io/postcodes/'+encodeURIComponent(pc.replace(/\s+/g,'')))
+    .then(r=>r.json()).then(d=>{
+      if(d.status===200&&d.result){
+        if(!inRegion(d.result.latitude,d.result.longitude)){showSearchMsg('This postcode is outside Southern Water\u2019s region',true);return}
+        lmap.flyTo([d.result.latitude,d.result.longitude],14);
+        dropSearchPin(d.result.latitude,d.result.longitude,pc.toUpperCase());
+      } else showSearchMsg('Postcode not found',true);
+    }).catch(()=>showSearchMsg('Search failed',true));
+}
+
+function goToPlace(name){
+  fetch('https://api.postcodes.io/places?q='+encodeURIComponent(name)+'&limit=10')
+    .then(r=>r.json()).then(d=>{
+      if(d.status===200&&d.result){
+        const match=d.result.find(p=>inRegion(p.latitude,p.longitude));
+        if(match){lmap.flyTo([match.latitude,match.longitude],13);dropSearchPin(match.latitude,match.longitude,match.name_1||name);return}
+      }
+      showSearchMsg('Place not found in Southern Water\u2019s region',true);
+    }).catch(()=>showSearchMsg('Search failed',true));
+}
+
+function useMyLocation(){
+  if(!navigator.geolocation){showSearchMsg('Location not supported',true);return}
+  showSearchMsg('Finding your location...',false);
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      const {latitude:lat,longitude:lon}=pos.coords;
+      lmap.flyTo([lat,lon],14);
+      dropSearchPin(lat,lon,'You are here');
+      document.querySelector('.map-search-msg')&&document.querySelector('.map-search-msg').remove();
+    },
+    ()=>showSearchMsg('Location unavailable — check browser permissions',true),
+    {enableHighAccuracy:true,timeout:10000}
+  );
+}
+
+function onSearchInput(){
+  clearTimeout(_searchDebounce);
+  const v=searchInput().value.trim();
+  const existing=document.querySelector('.map-search-msg');if(existing)existing.remove();
+  if(!v){
+    showDD([{label:'Use my live location',sub:'GPS on mobile, approximate on desktop',loc:true}]);
+    return;
+  }
+  _searchDebounce=setTimeout(()=>{
+    const isPC=/^[A-Z]{1,2}\d/i.test(v);
+    if(isPC){
+      fetch('https://api.postcodes.io/postcodes/'+encodeURIComponent(v.replace(/\s+/g,''))+'/autocomplete')
+        .then(r=>r.json()).then(d=>{
+          if(d.status!==200||!d.result||!d.result.length){showDD([{label:'Use my live location',loc:true},{label:'No postcodes found in this region',sub:'Try a postcode in Kent, Sussex, Hampshire or Surrey'}]);return}
+          // Bulk lookup to get lat/lon and filter to Southern Water region
+          fetch('https://api.postcodes.io/postcodes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({postcodes:d.result})})
+            .then(r2=>r2.json()).then(d2=>{
+              const items=[{label:'Use my live location',loc:true}];
+              if(d2.status===200&&d2.result){
+                d2.result.forEach(r=>{
+                  if(r.result&&inRegion(r.result.latitude,r.result.longitude)){
+                    items.push({label:r.query,postcode:r.query,sub:r.result.admin_district||''});
+                  }
+                });
+              }
+              if(items.length===1)items.push({label:'No postcodes found in this region',sub:'Southern Water covers Kent, Sussex, Hampshire & Surrey'});
+              showDD(items);
+            }).catch(()=>{});
+        }).catch(()=>{});
+    } else {
+      fetch('https://api.postcodes.io/places?q='+encodeURIComponent(v)+'&limit=10')
+        .then(r=>r.json()).then(d=>{
+          const items=[{label:'Use my live location',loc:true}];
+          if(d.status===200&&d.result){
+            d.result.filter(p=>inRegion(p.latitude,p.longitude)).slice(0,5)
+              .forEach(p=>items.push({label:p.name_1,sub:p.county_unitary||p.region||'',place:true}));
+          }
+          if(items.length===1)items.push({label:'No places found in this region',sub:'Southern Water covers Kent, Sussex, Hampshire & Surrey'});
+          showDD(items);
+        }).catch(()=>{});
+    }
+  },250);
+}
+
+function onSearchKeydown(e){
+  const dd=searchDD();
+  const opts=dd.querySelectorAll('.map-search-opt');
+  if(!opts.length)return;
+  if(e.key==='ArrowDown'){e.preventDefault();_ddIndex=Math.min(_ddIndex+1,opts.length-1);opts.forEach((o,i)=>o.classList.toggle('active',i===_ddIndex))}
+  else if(e.key==='ArrowUp'){e.preventDefault();_ddIndex=Math.max(_ddIndex-1,0);opts.forEach((o,i)=>o.classList.toggle('active',i===_ddIndex))}
+  else if(e.key==='Enter'){e.preventDefault();if(_ddIndex>=0)opts[_ddIndex].dispatchEvent(new MouseEvent('mousedown'));
+    else{const v=searchInput().value.trim();if(v){dd.classList.remove('open');/^[A-Z]{1,2}\d/i.test(v)?goToPostcode(v):goToPlace(v)}}}
+  else if(e.key==='Escape'){dd.classList.remove('open');searchInput().blur()}
+}
+
+// Wire up search events after DOM ready
+document.addEventListener('DOMContentLoaded',()=>{
+  const inp=searchInput();
+  inp.addEventListener('input',onSearchInput);
+  inp.addEventListener('keydown',onSearchKeydown);
+  inp.addEventListener('focus',()=>{if(!inp.value.trim())showDD([{label:'Use my live location',sub:'GPS on mobile, approximate on desktop',loc:true}])});
+  inp.addEventListener('blur',()=>setTimeout(()=>searchDD().classList.remove('open'),150));
+  // Prevent map interactions when interacting with search
+  L.DomEvent.disableClickPropagation(document.getElementById('map-search'));
+});
 
 // Smooth scroll for CTA — scroll to context bar so both context and map are visible
 document.querySelector('.cta').addEventListener('click',e=>{
