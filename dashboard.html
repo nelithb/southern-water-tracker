@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Southern Water – Procurement Intelligence</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0e17;color:#c8d6e5;height:100vh;overflow:hidden}
+
+/* ── Top bar ── */
+#topbar{display:flex;align-items:center;gap:10px;padding:8px 20px;background:rgba(10,14,23,0.96);border-bottom:1px solid rgba(255,255,255,0.05);position:fixed;top:0;left:0;right:0;z-index:1000;backdrop-filter:blur(12px)}
+#topbar h1{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;letter-spacing:-.2px}
+.sep{width:1px;height:18px;background:rgba(255,255,255,0.06)}
+.tabs{display:flex;gap:0}
+.tab{padding:6px 16px;font-size:11px;color:rgba(255,255,255,0.4);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-weight:500}
+.tab:hover{color:rgba(255,255,255,0.7)}
+.tab.active{color:#fff;border-bottom-color:#fff}
+#search-box{width:200px;padding:5px 9px;border-radius:5px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:11px;outline:none;margin-left:auto}
+#search-box::placeholder{color:rgba(255,255,255,0.2)}
+#search-box:focus{border-color:rgba(100,150,255,0.3)}
+#search-results{position:fixed;top:42px;right:20px;z-index:1001;width:240px;max-height:280px;overflow-y:auto;background:rgba(15,20,30,0.97);border:1px solid rgba(255,255,255,0.08);border-radius:0 0 5px 5px;display:none}
+.sr-item{padding:6px 9px;cursor:pointer;font-size:10px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.sr-item:hover{background:rgba(100,150,255,0.1)}
+.sr-type{font-size:8px;opacity:0.25;margin-left:4px;text-transform:uppercase}
+
+/* ── Headline cards ── */
+#headlines{display:flex;gap:16px;padding:16px 24px 12px;position:fixed;top:42px;left:0;right:0;z-index:900;background:rgba(10,14,23,0.92);backdrop-filter:blur(8px)}
+.hl-card{flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:16px 20px}
+.hl-val{font-size:32px;font-weight:700;color:#fff;line-height:1.1}
+.hl-label{font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-transform:uppercase;letter-spacing:.4px}
+.hl-accent-r .hl-val{color:#ff4757}
+.hl-accent-a .hl-val{color:#f39c12}
+.hl-accent-b .hl-val{color:#a78bfa}
+
+/* ── Main area ── */
+#main{position:fixed;top:152px;left:0;right:0;bottom:0;overflow:hidden}
+.panel{position:absolute;top:0;left:0;right:0;bottom:0;display:none;overflow:hidden}
+.panel.active{display:flex;flex-direction:column}
+
+/* ── Pipeline table ── */
+#panel-pipeline{padding:0}
+#table-filters{display:flex;gap:12px;align-items:center;padding:10px 24px;background:rgba(255,255,255,0.015);border-bottom:1px solid rgba(255,255,255,0.04);flex-shrink:0}
+#table-filters label{font-size:9px;opacity:0.3;text-transform:uppercase;letter-spacing:.3px}
+#table-filters select,#table-filters input[type=range]{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#c8d6e5;padding:3px 8px;border-radius:4px;font-size:10px;outline:none}
+#table-filters select{min-width:100px}
+#table-filters .range-val{font-size:10px;opacity:0.5;min-width:30px}
+#table-wrap{flex:1;overflow-y:auto;padding:0 24px 24px}
+table{width:100%;border-collapse:collapse}
+thead{position:sticky;top:0;z-index:10}
+th{padding:8px 10px;text-align:left;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:rgba(255,255,255,0.35);background:rgba(10,14,23,0.98);border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;white-space:nowrap;user-select:none}
+th:hover{color:rgba(255,255,255,0.6)}
+th .arrow{font-size:8px;margin-left:3px;opacity:0.4}
+td{padding:7px 10px;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.025);white-space:nowrap}
+tr:hover td{background:rgba(255,255,255,0.02)}
+tr{cursor:pointer}
+.bar-cell{position:relative;min-width:80px}
+.bar-bg{position:absolute;left:0;top:50%;transform:translateY(-50%);height:6px;border-radius:3px;opacity:0.5}
+.bar-val{position:relative;z-index:1}
+.pill{display:inline-block;padding:2px 7px;border-radius:3px;font-size:8px;font-weight:600}
+.pill-p{background:rgba(167,139,250,0.15);color:#a78bfa}
+.pill-g{background:rgba(46,204,113,0.12);color:#2ecc71}
+.pill-a{background:rgba(243,156,18,0.12);color:#f39c12}
+.pill-r{background:rgba(255,71,87,0.12);color:#ff4757}
+
+/* ── Map panel ── */
+#panel-map{flex-direction:column}
+#map-bar{display:flex;gap:8px;align-items:center;padding:8px 20px;background:rgba(255,255,255,0.015);border-bottom:1px solid rgba(255,255,255,0.04);flex-shrink:0}
+.mbtn{padding:4px 10px;border-radius:4px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:#9aa;font-size:10px;cursor:pointer}.mbtn:hover{background:rgba(255,255,255,0.06)}.mbtn.mon{background:rgba(70,130,255,0.15);border-color:rgba(70,130,255,0.3);color:#fff}
+#map-area{flex:1;position:relative}
+#map-leaf{width:100%;height:100%}
+#map-legend{position:absolute;bottom:14px;left:14px;z-index:600;background:rgba(12,16,26,0.93);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:10px 12px;font-size:9px}
+.ml-row{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.ml-dot{width:8px;height:8px;border-radius:50%}
+
+/* ── Supplier panel ── */
+#panel-suppliers{flex-direction:column;align-items:center;justify-content:center}
+#sup-title{font-size:11px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:.5px;padding:14px 0 4px;text-align:center}
+#sup-svg{width:100%;flex:1}
+
+/* ── Sidebar ── */
+#sidebar{position:fixed;top:42px;right:0;width:370px;bottom:0;background:rgba(12,16,26,0.97);border-left:1px solid rgba(255,255,255,0.05);backdrop-filter:blur(16px);z-index:950;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto;padding:18px}
+#sidebar.open{transform:translateX(0)}
+.close-btn{position:absolute;top:8px;right:10px;cursor:pointer;font-size:15px;opacity:0.25;background:none;border:none;color:#c8d6e5}.close-btn:hover{opacity:1}
+#sidebar h2{font-size:14px;color:#fff;margin-bottom:2px;padding-right:24px;font-weight:600}
+.sub{font-size:10px;opacity:0.2;margin-bottom:14px;text-transform:uppercase;letter-spacing:.4px}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.sc{background:rgba(255,255,255,0.025);border-radius:6px;padding:10px;border:1px solid rgba(255,255,255,0.035)}
+.sv{font-size:17px;font-weight:700;color:#fff}.sl{font-size:8px;opacity:0.2;margin-top:1px;text-transform:uppercase;letter-spacing:.4px}
+.section{margin-top:14px}.section h3{font-size:10px;opacity:0.25;margin-bottom:7px;text-transform:uppercase;letter-spacing:.4px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:7px 9px;background:rgba(255,255,255,0.018);border-radius:5px;margin-bottom:3px;border:1px solid rgba(255,255,255,0.025);cursor:pointer;font-size:11px}
+.row:hover{background:rgba(255,255,255,0.04)}
+.row-l{max-width:60%}.row-sub{font-size:9px;opacity:0.2;margin-top:1px}
+.row-r{font-weight:600;font-size:12px;text-align:right}
+.tag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:600;margin-left:3px}
+.t-p{background:rgba(167,139,250,0.12);color:#a78bfa}.t-g{background:rgba(46,204,113,0.12);color:#2ecc71}.t-a{background:rgba(243,156,18,0.12);color:#f39c12}.t-r{background:rgba(255,71,87,0.12);color:#ff4757}
+.divider{height:1px;background:rgba(255,255,255,0.03);margin:16px 0}
+.src-link{display:inline-block;font-size:8px;opacity:0.3;margin-top:2px;text-decoration:none;color:#a78bfa;transition:opacity .15s}
+.src-link:hover{opacity:0.8;text-decoration:underline}
+
+/* ── Tooltip ── */
+.tooltip{position:fixed;pointer-events:none;z-index:2000;background:rgba(10,14,23,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:6px 9px;font-size:10px;backdrop-filter:blur(8px);display:none;max-width:280px}
+.tt-n{font-weight:600;color:#fff}.tt-d{opacity:0.3;margin-top:1px;font-size:9px}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>Southern Water</h1><div class="sep"></div>
+  <div class="tabs">
+    <div class="tab active" data-panel="pipeline" onclick="switchPanel('pipeline')">Pipeline</div>
+    <div class="tab" data-panel="map" onclick="switchPanel('map')">Map</div>
+    <div class="tab" data-panel="suppliers" onclick="switchPanel('suppliers')">Suppliers</div>
+  </div>
+  <input type="text" id="search-box" placeholder="Search catchment, site, supplier...">
+</div>
+<div id="search-results"></div>
+
+<div id="headlines">
+  <div class="hl-card hl-accent-r"><div class="hl-val" id="hl-sites">—</div><div class="hl-label">Sites with no publicly verified spend</div></div>
+  <div class="hl-card hl-accent-a"><div class="hl-val" id="hl-hours">—</div><div class="hl-label">Spill hours with no publicly linked contracts</div></div>
+  <div class="hl-card" style="border-left:2px solid #a78bfa"><div class="hl-val" id="hl-linked">—</div><div class="hl-label">Catchments with verified spend</div></div>
+  <div class="hl-card"><div class="hl-val" id="hl-deadline">2035</div><div class="hl-label">Statutory deadline (Environment Act 2021)</div></div>
+</div>
+<div style="padding:0 24px 0;font-size:8px;opacity:0.2;margin-top:-8px">Based on publicly available procurement records. Framework call-offs and internal work orders may not be reflected.</div>
+
+<div id="main">
+  <div id="panel-pipeline" class="panel active">
+    <div id="table-filters">
+      <label>Region</label><select id="f-region"><option value="all">All regions</option><option value="kent">Kent</option><option value="sussex">Sussex</option><option value="hampshire">Hampshire</option><option value="iow">Isle of Wight</option></select>
+      <label>Status</label><select id="f-status"><option value="all">All</option><option value="uncontracted">Uncontracted</option><option value="contracted">Contracted</option></select>
+      <label>Min spill hours</label><input type="range" id="f-spill" min="0" max="500" value="0" step="5"><span class="range-val" id="f-spill-val">0h</span>
+    </div>
+    <div id="table-wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+  </div>
+  <div id="panel-map" class="panel">
+    <div id="map-bar">
+      <div class="mbtn mon" data-f="all" onclick="mapFilter('all')">Show all</div>
+      <div class="mbtn" data-f="uncontracted" onclick="mapFilter('uncontracted')">Uncontracted only</div>
+      <div class="mbtn" data-f="priority" onclick="mapFilter('priority')">High priority</div>
+    </div>
+    <div id="map-area"><div id="map-leaf"></div>
+      <div id="map-legend">
+        <div class="ml-row"><div class="ml-dot" style="background:#a78bfa"></div> Site-level contracts</div>
+        <div class="ml-row"><div class="ml-dot" style="background:#2ecc71"></div> Framework only</div>
+        <div class="ml-row"><div class="ml-dot" style="background:#f39c12"></div> Partial</div>
+        <div class="ml-row"><div class="ml-dot" style="background:#ff4757"></div> Uncontracted</div>
+      </div>
+    </div>
+  </div>
+  <div id="panel-suppliers" class="panel">
+    <div id="sup-content" style="flex:1;overflow-y:auto;padding:0 24px 24px"></div>
+  </div>
+</div>
+
+<div id="sidebar"><button class="close-btn" onclick="closeSB()">&times;</button><div id="sbc"></div></div>
+<div class="tooltip" id="tip"><div class="tt-n"></div><div class="tt-d"></div></div>
+
+<script>
+const COL={p:'#a78bfa',g:'#2ecc71',a:'#f39c12',r:'#ff4757',gold:'#f9ca24'};
+let G,lmap=null,mapMarkers=null,mapFilterMode='all',sortCol='spill',sortAsc=false;
+
+fetch('graph_with_micro_procurement.json').then(r=>r.json()).then(d=>{
+  G=d; G.nm=new Map(d.nodes.map(n=>[n.id,n]));
+  G.cat=d.nodes.filter(n=>n.type==='catchment');
+  G.sit=d.nodes.filter(n=>n.type==='overflow_site');
+  G.sup=d.nodes.filter(n=>n.type==='supplier');
+  G.co=d.nodes.find(n=>n.type==='company');
+  G.allEdges=d.edges;
+  G.pm=new Map();G.cm=new Map();G.scm=new Map();G.csm=new Map();G.ccmR=new Map();G.microByCatch=new Map();G.microBySup=new Map();G.supByCatch=new Map();
+  d.edges.forEach(e=>{
+    if(e.relationship==='contains_site'){G.pm.set(e.target,e.source);if(!G.cm.has(e.source))G.cm.set(e.source,[]);G.cm.get(e.source).push(e.target)}
+    if(e.relationship==='won_contract'){if(!G.scm.has(e.source))G.scm.set(e.source,[]);G.scm.get(e.source).push(e.target);if(!G.csm.has(e.target))G.csm.set(e.target,[]);G.csm.get(e.target).push(e.source)}
+    if(e.relationship==='delivers_in'){if(!G.ccmR.has(e.target))G.ccmR.set(e.target,[]);G.ccmR.get(e.target).push({id:e.source,w:e.weight})}
+    if(e.relationship==='covers_site'){if(!G.microByCatch.has(e.target))G.microByCatch.set(e.target,[]);G.microByCatch.get(e.target).push({id:e.source,w:e.weight});
+      (G.csm.get(e.source)||[]).forEach(sid=>{if(!G.microBySup.has(sid))G.microBySup.set(sid,[]);G.microBySup.get(sid).push({ctr:e.source,catch:e.target,w:e.weight})})}
+  });
+  G.cat.forEach(c=>{
+    // Deduplicate: a contract linked to multiple catchments should only count once per catchment
+    // Use the contract node's real value, not edge weight sums
+    const fwLinks=G.ccmR.get(c.id)||[];
+    const miLinks=G.microByCatch.get(c.id)||[];
+    const seenCtrs=new Set();
+    let spend=0;
+    fwLinks.forEach(l=>{if(!seenCtrs.has(l.id)){seenCtrs.add(l.id);const n=G.nm.get(l.id);spend+=(n&&n.value)||0}});
+    miLinks.forEach(l=>{if(!seenCtrs.has(l.id)){seenCtrs.add(l.id);const n=G.nm.get(l.id);spend+=(n&&n.value)||0}});
+    c._spend=spend;c._fwCount=fwLinks.length;c._miCount=miLinks.length;c._totalC=c._fwCount+c._miCount;
+    c._status=c._miCount>0?'site-level':c._spend>0?'framework':'none';
+    c._sites=(G.cm.get(c.id)||[]).length;
+    c._sph=c.size>0&&c._spend>0?c._spend/c.size:0;
+    // Region from lon
+    if(c.lon>0.3)c._region='kent';else if(c.lon>-0.5)c._region='sussex';else if(c.lat<50.8&&c.lon<-1)c._region='iow';else c._region='hampshire';
+    // Top supplier
+    const sups=new Map();
+    (G.microByCatch.get(c.id)||[]).forEach(l=>{(G.csm.get(l.id)||[]).forEach(sid=>{const s=G.nm.get(sid);if(s)sups.set(sid,(sups.get(sid)||0)+l.w)})});
+    G.supByCatch.set(c.id,sups);
+    if(sups.size){const top=[...sups.entries()].sort((a,b)=>b[1]-a[1])[0];c._topSup=G.nm.get(top[0]).label}else c._topSup='';
+  });
+  G.sup.sort((a,b)=>{const am=(G.microBySup.get(a.id)||[]).length,bm=(G.microBySup.get(b.id)||[]).length;return am!==bm?bm-am:(b.total_value||0)-(a.total_value||0)});
+  G.topSup=G.sup.filter(s=>(G.scm.get(s.id)||[]).length>0);
+
+  // Headlines
+  const uncontracted=G.cat.filter(c=>c._status==='none');
+  const unSites=uncontracted.reduce((s,c)=>s+c._sites,0);
+  const unHours=uncontracted.reduce((s,c)=>s+c.size,0);
+  const linkedCount=G.cat.filter(c=>c._spend>0).length;
+  document.getElementById('hl-sites').textContent=d3.format(',')(unSites);
+  document.getElementById('hl-hours').textContent=d3.format(',.0f')(unHours)+'h';
+  document.getElementById('hl-linked').textContent=linkedCount+' / 233';
+
+  buildTable();setupSearch();
+  document.getElementById('f-region').onchange=buildTable;
+  document.getElementById('f-status').onchange=buildTable;
+  document.getElementById('f-spill').oninput=function(){document.getElementById('f-spill-val').textContent=this.value+'h';buildTable()};
+});
+
+// ═══════════════════════════════════════════
+// PANEL 1 — Pipeline Table
+// ═══════════════════════════════════════════
+function buildTable(){
+  const region=document.getElementById('f-region').value;
+  const status=document.getElementById('f-status').value;
+  const minSpill=+document.getElementById('f-spill').value;
+  let rows=G.cat.filter(c=>{
+    if(region!=='all'&&c._region!==region)return false;
+    if(status==='uncontracted'&&c._status!=='none')return false;
+    if(status==='contracted'&&c._status==='none')return false;
+    if(c.size<minSpill)return false;return true});
+  const key=sortCol;
+  rows.sort((a,b)=>{
+    let av,bv;
+    if(key==='name'){av=a.label;bv=b.label;return sortAsc?av.localeCompare(bv):bv.localeCompare(av)}
+    if(key==='spill'){av=a.size;bv=b.size}
+    else if(key==='sites'){av=a._sites;bv=b._sites}
+    else if(key==='status'){av=a._status==='site-level'?3:a._status==='framework'?2:a._status==='none'&&a.size>40?0:1;bv=b._status==='site-level'?3:b._status==='framework'?2:b._status==='none'&&b.size>40?0:1}
+    else if(key==='spend'){av=a._spend;bv=b._spend}
+    else if(key==='sph'){av=a._sph;bv=b._sph}
+    else if(key==='supplier'){av=a._topSup||'zzz';bv=b._topSup||'zzz';return sortAsc?av.localeCompare(bv):bv.localeCompare(av)}
+    else{av=a.size;bv=b.size}
+    return sortAsc?av-bv:bv-av});
+  const maxSpill=d3.max(G.cat,c=>c.size)||1;
+  const cols=[{id:'name',label:'Catchment'},{id:'spill',label:'Spill Hours'},{id:'sites',label:'Sites'},{id:'status',label:'Status'},{id:'spend',label:'Linked Spend'},{id:'sph',label:'£/Spill Hr'},{id:'supplier',label:'Top Supplier'}];
+  document.getElementById('thead').innerHTML='<tr>'+cols.map(c=>`<th onclick="doSort('${c.id}')">${c.label}<span class="arrow">${sortCol===c.id?(sortAsc?'▲':'▼'):''}</span></th>`).join('')+'</tr>';
+  let html='';
+  rows.forEach(c=>{
+    const pct=Math.round(c.size/maxSpill*100);
+    const barCol=c._status==='site-level'?COL.p:c._status==='framework'?COL.g:c.size>40?COL.r:'rgba(255,255,255,0.06)';
+    const pill=c._status==='site-level'?`<span class="pill pill-p">SITE-LEVEL</span>`:c._status==='framework'?`<span class="pill pill-g">FRAMEWORK</span>`:c.size>40?`<span class="pill pill-r">UNVERIFIED</span>`:`<span class="pill pill-a">LOW</span>`;
+    html+=`<tr onclick="selCatch(G.nm.get('${c.id}'))">
+      <td style="color:#fff;font-weight:500">${c.label}</td>
+      <td class="bar-cell"><div class="bar-bg" style="width:${pct}%;background:${barCol}"></div><span class="bar-val">${c.size.toFixed(0)}</span></td>
+      <td>${c._sites}</td>
+      <td>${pill}</td>
+      <td>${c._spend>0?'£'+d3.format(',.0f')(c._spend):'—'}</td>
+      <td>${c._sph>0?'£'+d3.format(',.0f')(c._sph):''}</td>
+      <td style="opacity:0.5;font-size:10px">${c._topSup?c._topSup.slice(0,30):''}</td></tr>`});
+  document.getElementById('tbody').innerHTML=html;
+}
+function doSort(col){if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=col==='name'}buildTable()}
+
+// ═══════════════════════════════════════════
+// PANEL 2 — Map
+// ═══════════════════════════════════════════
+function buildMap(){
+  if(lmap){lmap.invalidateSize();renderMapMarkers();return}
+  lmap=L.map('map-leaf').setView([50.95,-0.3],9);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'OSM/CARTO',maxZoom:18}).addTo(lmap);
+  mapMarkers=L.layerGroup().addTo(lmap);renderMapMarkers();
+}
+function renderMapMarkers(){
+  if(!mapMarkers)return;mapMarkers.clearLayers();
+  const sS=d3.scaleSqrt().domain([0,d3.quantile(G.cat.map(c=>c.size).sort(d3.ascending),.95)]).range([5,24]).clamp(true);
+  G.cat.forEach(c=>{
+    if(mapFilterMode==='uncontracted'&&c._status!=='none')return;
+    if(mapFilterMode==='priority'&&(c._status!=='none'||c.size<=20))return;
+    const col=c._status==='site-level'?COL.p:c._status==='framework'?COL.g:c.size>40?COL.r:COL.a;
+    L.circleMarker([c.lat,c.lon],{radius:Math.max(4,sS(c.size)),fillColor:col,fillOpacity:.7,color:'#fff',weight:.6,opacity:.12})
+      .bindTooltip(`${c.label}: ${c.size.toFixed(0)}h | ${c._sites} sites${c._spend>0?' | £'+d3.format(',.0f')(c._spend):''}`)
+      .on('click',()=>selCatch(c)).addTo(mapMarkers)});
+}
+function mapFilter(f){mapFilterMode=f;document.querySelectorAll('.mbtn').forEach(b=>b.classList.toggle('mon',b.dataset.f===f));renderMapMarkers()}
+
+// ═══════════════════════════════════════════
+// PANEL 3 — Supplier Network
+// ═══════════════════════════════════════════
+function buildSuppliers(){
+  const el=document.getElementById('sup-content');
+  // Separate suppliers into two groups
+  const siteLevel=[];const frameworkOnly=[];
+  G.topSup.forEach(s=>{
+    const micro=G.microBySup.get(s.id)||[];
+    const catches=new Set();micro.forEach(l=>catches.add(l.catch));
+    const catchNames=[...catches].map(cid=>(G.nm.get(cid)||{}).label||'').filter(Boolean);
+    s._microCount=micro.length;s._catchCount=catches.size;s._catchNames=catchNames;
+    if(micro.length>0)siteLevel.push(s);else frameworkOnly.push(s);
+  });
+  siteLevel.sort((a,b)=>b._microCount-a._microCount);
+  frameworkOnly.sort((a,b)=>(b.total_value||0)-(a.total_value||0));
+
+  let h=`<div style="padding-top:14px">`;
+  h+=`<div style="font-size:9px;opacity:0.2;margin-bottom:10px">${G.topSup.length} suppliers total | ${siteLevel.length} site-level | ${frameworkOnly.length} framework-only</div>`;
+
+  // Section 1: Suppliers with confirmed site-level work
+  h+=`<h3 style="font-size:12px;color:#fff;margin-bottom:4px">Confirmed site-level contractors</h3>`;
+  h+=`<p style="font-size:9px;opacity:0.25;margin-bottom:12px">Suppliers with named treatment works, pumping stations, or overflow sites traced via press releases and project announcements.</p>`;
+  h+=`<table style="width:100%"><thead><tr>
+    <th>Supplier</th><th style="text-align:right">Site links</th><th style="text-align:right">Catchments</th><th>Catchment names</th>
+  </tr></thead><tbody>`;
+  siteLevel.forEach(s=>{
+    h+=`<tr onclick="selSup(G.nm.get('${s.id}'))" style="cursor:pointer">
+      <td style="color:#fff;font-weight:500">${s.label.slice(0,40)}</td>
+      <td style="text-align:right"><span style="color:${COL.p};font-weight:600">${s._microCount}</span></td>
+      <td style="text-align:right">${s._catchCount}</td>
+      <td style="font-size:9px;opacity:0.35">${s._catchNames.slice(0,4).join(', ')}${s._catchNames.length>4?' +':''}${s._catchNames.length>4?(s._catchNames.length-4):''}</td>
+    </tr>`;
+  });
+  h+=`</tbody></table>`;
+
+  // Section 2: Framework holders
+  // Split framework-only into confirmed value vs ceiling-only
+  const fwConfirmed=frameworkOnly.filter(s=>(s.total_value||0)>0);
+  const fwCeiling=frameworkOnly.filter(s=>(s.total_value||0)===0&&(s.ceiling_value||0)>0);
+  const fwNone=frameworkOnly.filter(s=>(s.total_value||0)===0&&(s.ceiling_value||0)===0);
+
+  if(fwConfirmed.length){
+    h+=`<h3 style="font-size:12px;color:#fff;margin:24px 0 4px">Framework holders — confirmed lot values</h3>`;
+    h+=`<p style="font-size:9px;opacity:0.25;margin-bottom:12px">Per-supplier values from Find a Tender lot-level awards. These are confirmed contract values, not framework ceilings.</p>`;
+    h+=`<table style="width:100%"><thead><tr>
+      <th>Supplier</th><th style="text-align:right">Confirmed value</th><th style="text-align:right">Awards</th>
+    </tr></thead><tbody>`;
+    fwConfirmed.forEach(s=>{
+      h+=`<tr onclick="selSup(G.nm.get('${s.id}'))" style="cursor:pointer">
+        <td style="color:#fff;font-weight:500">${s.label.slice(0,45)}</td>
+        <td style="text-align:right;color:${COL.g}">£${d3.format(',.0f')(s.total_value)}</td>
+        <td style="text-align:right">${s.award_count||(G.scm.get(s.id)||[]).length}</td>
+      </tr>`;
+    });
+    h+=`</tbody></table>`;
+  }
+
+  if(fwCeiling.length){
+    h+=`<h3 style="font-size:12px;color:#fff;margin:24px 0 4px">Framework holders — ceiling values only (${fwCeiling.length})</h3>`;
+    h+=`<p style="font-size:9px;opacity:0.25;margin-bottom:12px">These suppliers are on multi-supplier frameworks where individual allocations are not published. The value shown is the framework ceiling they are eligible for — not what they have been awarded.</p>`;
+    h+=`<table style="width:100%"><thead><tr>
+      <th>Supplier</th><th style="text-align:right">Framework ceiling</th><th style="text-align:right">Frameworks</th>
+    </tr></thead><tbody>`;
+    fwCeiling.forEach(s=>{
+      h+=`<tr onclick="selSup(G.nm.get('${s.id}'))" style="cursor:pointer">
+        <td style="color:#fff;font-weight:500">${s.label.slice(0,45)}</td>
+        <td style="text-align:right;color:rgba(46,204,113,0.35)">Up to £${d3.format(',.0f')(s.ceiling_value)}</td>
+        <td style="text-align:right">${s.award_count||(G.scm.get(s.id)||[]).length}</td>
+      </tr>`;
+    });
+    h+=`</tbody></table>`;
+  }
+
+  // Frameworks section (the new fw_ nodes)
+  const fwNodes=G.nodes.filter(n=>n.type==='contract_framework');
+  if(fwNodes.length){
+    h+=`<h3 style="font-size:12px;color:#fff;margin:24px 0 4px">Framework structure</h3>`;
+    h+=`<p style="font-size:9px;opacity:0.25;margin-bottom:12px">Major delivery frameworks with named partners. Click for source.</p>`;
+    fwNodes.forEach(fw=>{
+      const val=fw.value;
+      h+=`<div style="background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.03);border-radius:6px;padding:10px 11px;margin-bottom:6px">`;
+      h+=`<div style="display:flex;justify-content:space-between"><div style="color:#fff;font-size:11px;font-weight:500">${fw.label}</div>`;
+      h+=`<div style="color:${COL.g};font-weight:600;font-size:12px">${val?'£'+d3.format(',.0f')(val):'—'}</div></div>`;
+      if(fw.notes)h+=`<div style="font-size:9px;opacity:0.3;margin-top:3px">${fw.notes.slice(0,120)}</div>`;
+      h+=srcTag(fw);
+      h+=`</div>`;
+    });
+  }
+
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+// ═══════════════════════════════════════════
+// SIDEBAR — Shared
+// ═══════════════════════════════════════════
+function srcTag(node){
+  const u=node&&node.source;
+  if(!u||!u.startsWith('http'))return '';
+  const domain=u.replace(/^https?:\/\//,'').split('/')[0].replace('www.','');
+  return `<a class="src-link" href="${u}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Source: ${domain} ↗</a>`;
+}
+function ctrCard(c){
+  // Render one contract card with honest value + sites listed
+  const sn=(G.csm.get(c.id)||[]).map(sid=>(G.nm.get(sid)||{}).label||'').filter(Boolean);
+  const sup=sn.join(', ')||'SW direct';
+  const sites=(c.sites||[]).join(', ');
+  const valNote=c.value_note||'';
+  const notes=c.notes||'';
+  const isHistorical=notes.includes('HISTORICAL');
+  const val=c.value;
+  let valStr=val?'£'+d3.format(',.0f')(val):'Value not published';
+  let valCol=val?COL.p:'rgba(255,255,255,0.2)';
+  if(isHistorical){valStr+=' (historical)';valCol='rgba(255,255,255,0.25)'}
+  let h=`<div style="background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.03);border-radius:6px;padding:10px 11px;margin-bottom:6px">`;
+  h+=`<div style="display:flex;justify-content:space-between;align-items:flex-start">`;
+  h+=`<div style="flex:1;min-width:0"><div style="color:#fff;font-size:11px;font-weight:500">${(c.label||'').slice(0,55)}</div>`;
+  h+=`<div style="font-size:9px;opacity:0.3;margin-top:2px">${sup.slice(0,50)}</div>`;
+  if(sites)h+=`<div style="font-size:9px;opacity:0.25;margin-top:2px">Sites: ${sites}</div>`;
+  h+=`${srcTag(c)}`;
+  h+=`</div>`;
+  h+=`<div style="text-align:right;flex-shrink:0;margin-left:10px"><div style="font-weight:600;font-size:12px;color:${valCol}">${valStr}</div>`;
+  if(valNote&&val)h+=`<div style="font-size:8px;opacity:0.2;margin-top:1px;max-width:120px;text-align:right">${valNote.slice(0,60)}</div>`;
+  h+=`</div></div>`;
+  if(c.confidence==='low')h+=`<div style="font-size:8px;opacity:0.2;margin-top:4px">⚠ Low confidence match</div>`;
+  h+=`</div>`;
+  return h;
+}
+function selCatch(d){
+  const kids=(G.cm.get(d.id)||[]).map(id=>G.nm.get(id)).filter(Boolean).sort((a,b)=>b.size-a.size);
+  const miCtrs=G.microByCatch.get(d.id)||[];const fwCtrs=G.ccmR.get(d.id)||[];const sups=G.supByCatch.get(d.id)||new Map();
+  let tag;
+  if(d._status==='site-level')tag='<span class="tag t-p">SITE-LEVEL</span>';
+  else if(d._status==='framework')tag='<span class="tag t-g">FRAMEWORK</span>';
+  else if(d.size>40)tag='<span class="tag t-r">UNVERIFIED</span>';
+  else tag='<span class="tag t-a">LOW PRIORITY</span>';
+  let h=`<h2>${d.label} ${tag}</h2><div class="sub">Catchment · ${d._region.toUpperCase()}</div><div class="sg">
+    <div class="sc"><div class="sv">£${d3.format(',.0f')(d._spend)}</div><div class="sl">Linked Spend</div></div>
+    <div class="sc"><div class="sv">${d._totalC}</div><div class="sl">Contracts</div></div>
+    <div class="sc"><div class="sv">${d.size.toFixed(0)}h</div><div class="sl">Spill Hours</div></div>
+    <div class="sc"><div class="sv">${kids.length}</div><div class="sl">Overflow Sites</div></div></div>`;
+  if(d._spend>0&&d.size>0)h+=`<div class="sc" style="margin-bottom:14px"><div class="sv">£${d3.format(',.0f')(d._sph)}/hr</div><div class="sl">Spend per Spill Hour</div></div>`;
+  if(miCtrs.length){h+=`<div class="section"><h3>Site-Level Contracts (${miCtrs.length})</h3>`;
+    miCtrs.sort((a,b)=>b.w-a.w).forEach(l=>{const c=G.nm.get(l.id);if(c)h+=ctrCard(c)});h+=`</div>`}
+  if(fwCtrs.length){h+=`<div class="section"><h3>Framework Links (${fwCtrs.length})</h3>`;
+    // Deduplicate: same contract may appear via multiple edges
+    const seenFw=new Set();
+    fwCtrs.sort((a,b)=>b.w-a.w).forEach(l=>{
+      if(seenFw.has(l.id))return;seenFw.add(l.id);
+      const c=G.nm.get(l.id);if(!c)return;
+      const realVal=(c.value||0);
+      const isCeiling=c.value_type==='framework_ceiling';
+      const cEdges=G.allEdges.filter(e=>e.source===c.id&&e.relationship==='delivers_in');
+      let notes=[];
+      if(cEdges.length>1)notes.push(`Covers ${cEdges.length} catchments`);
+      if(isCeiling)notes.push('Framework ceiling — per-supplier values not published');
+      if(c.value_note)notes.push(c.value_note.slice(0,80));
+      const noteHtml=notes.length?`<div class="row-sub">${notes[0]}</div>`:'';
+      const valCol=isCeiling?'rgba(46,204,113,0.4)':COL.g;
+      const valPrefix=isCeiling?'Up to ':'';
+      h+=`<div class="row"><div class="row-l">${(c.label||'').slice(0,42)}${noteHtml}${srcTag(c)}</div><div class="row-r" style="color:${valCol}">${realVal?valPrefix+'£'+d3.format(',.0f')(realVal):'—'}</div></div>`});h+=`</div>`}
+  if(sups.size){h+=`<div class="section"><h3>Suppliers (${sups.size})</h3>`;
+    [...sups.entries()].sort((a,b)=>b[1]-a[1]).forEach(([sid,val])=>{const s=G.nm.get(sid);if(s)h+=`<div class="row" onclick="selSup(G.nm.get('${sid}'))"><div class="row-l">${s.label.slice(0,38)}</div><div class="row-r" style="color:${COL.gold}">£${d3.format(',.0f')(val)}</div></div>`});h+=`</div>`}
+  h+=`<div class="divider"></div>`;
+  if(kids.length){h+=`<div class="section"><h3>Worst Overflow Sites</h3>`;
+    kids.slice(0,8).forEach(s=>{h+=`<div class="row" onclick="selSite(G.nm.get('${s.id}'))"><div class="row-l" style="color:#fff">${s.id}</div><div class="row-r" style="color:${COL.r}">${s.size.toFixed(1)}h</div></div>`});
+    if(kids.length>8)h+=`<div style="font-size:9px;opacity:0.2;padding:4px 9px">+ ${kids.length-8} more</div>`;h+=`</div>`}
+  openSB(h)}
+
+function selSite(d){
+  const pid=G.pm.get(d.id),parent=G.nm.get(pid);const miCtrs=parent?(G.microByCatch.get(parent.id)||[]):[];
+  let h=`<h2>${d.id}</h2><div class="sub">Overflow Site</div><div class="sg">
+    <div class="sc"><div class="sv">${d.size.toFixed(1)}h</div><div class="sl">Spill Hours</div></div>
+    <div class="sc"><div class="sv">${parent?parent.label:'—'}</div><div class="sl">Catchment</div></div>
+    <div class="sc"><div class="sv">${d.lat.toFixed(4)}</div><div class="sl">Lat</div></div>
+    <div class="sc"><div class="sv">${d.lon.toFixed(4)}</div><div class="sl">Lon</div></div></div>`;
+  if(miCtrs.length){h+=`<div class="section"><h3>Contracts in Catchment</h3>`;
+    miCtrs.slice(0,5).forEach(l=>{const c=G.nm.get(l.id);if(c)h+=ctrCard(c)});h+=`</div>`}
+  if(parent)h+=`<div style="margin-top:12px"><button class="btn" style="padding:5px 12px;border-radius:5px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:10px;cursor:pointer" onclick="selCatch(G.nm.get('${pid}'))">View Catchment: ${parent.label}</button></div>`;
+  openSB(h)}
+
+function selSup(d){
+  const microLinks=G.microBySup.get(d.id)||[];const allCtrs=(G.scm.get(d.id)||[]).map(cid=>G.nm.get(cid)).filter(Boolean);const fwCtrs=allCtrs.filter(c=>!c.id.startsWith('micro_'));
+  const catches=new Set();microLinks.forEach(l=>catches.add(l.catch));
+  let h=`<h2>${d.label}</h2><div class="sub">Supplier</div><div class="sg">
+    <div class="sc"><div class="sv">£${d3.format(',.0f')(d.total_value||0)}</div><div class="sl">Total Value</div></div>
+    <div class="sc"><div class="sv">${d.award_count||allCtrs.length}</div><div class="sl">Awards</div></div>
+    <div class="sc"><div class="sv">${microLinks.length}</div><div class="sl">Site Links</div></div>
+    <div class="sc"><div class="sv">${catches.size}</div><div class="sl">Catchments</div></div></div>`;
+  if(microLinks.length){h+=`<div class="section"><h3>Site-Level Work (${microLinks.length})</h3>`;
+    microLinks.sort((a,b)=>b.w-a.w).forEach(l=>{const c=G.nm.get(l.ctr);if(c)h+=ctrCard(c)});h+=`</div>`}
+  if(fwCtrs.length){h+=`<div class="section"><h3>Frameworks (${fwCtrs.length})</h3>`;
+    fwCtrs.sort((a,b)=>(b.value||0)-(a.value||0)).slice(0,8).forEach(c=>{h+=`<div class="row"><div class="row-l">${(c.label||c.id).slice(0,40)}${srcTag(c)}</div><div class="row-r" style="color:${COL.g}">£${d3.format(',.0f')(c.value||0)}</div></div>`});h+=`</div>`}
+  openSB(h)}
+
+function openSB(h){document.getElementById('sbc').innerHTML=h;document.getElementById('sidebar').classList.add('open')}
+function closeSB(){document.getElementById('sidebar').classList.remove('open')}
+function showTip(ev,n,d){const t=document.getElementById('tip');t.querySelector('.tt-n').textContent=n;t.querySelector('.tt-d').textContent=d;t.style.display='block';t.style.left=(ev.clientX+10)+'px';t.style.top=(ev.clientY-6)+'px'}
+function hideTip(){document.getElementById('tip').style.display='none'}
+
+function switchPanel(p){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.panel===p));
+  document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
+  document.getElementById('panel-'+p).classList.add('active');
+  closeSB();
+  if(p==='map')setTimeout(()=>buildMap(),50);
+  if(p==='suppliers')setTimeout(buildSuppliers,50);
+}
+
+function setupSearch(){
+  const box=document.getElementById('search-box'),res=document.getElementById('search-results');
+  box.addEventListener('input',()=>{const q=box.value.trim().toLowerCase();if(q.length<2){res.style.display='none';return}
+    const hits=G.nodes.filter(n=>{if(n.type==='contract'||n.type==='contract_micro'||n.type==='company')return false;return(n.label||'').toLowerCase().includes(q)||(n.id||'').toLowerCase().includes(q)}).slice(0,15);
+    if(!hits.length){res.style.display='none';return}
+    res.innerHTML=hits.map(n=>`<div class="sr-item" data-id="${n.id}">${n.label||n.id}<span class="sr-type">${n.type}</span></div>`).join('');
+    res.style.display='block';
+    res.querySelectorAll('.sr-item').forEach(el=>el.addEventListener('click',()=>{const nd=G.nm.get(el.dataset.id);if(nd.type==='catchment')selCatch(nd);else if(nd.type==='overflow_site')selSite(nd);else if(nd.type==='supplier')selSup(nd);res.style.display='none';box.value=''}))});
+  document.addEventListener('click',e=>{if(!box.contains(e.target)&&!res.contains(e.target))res.style.display='none'})}
+</script>
+</body>
+</html>
