@@ -10,19 +10,22 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Southern Water Infrastructure Transparency Tool — Spills, Sites & Spend">
 <meta name="twitter:description" content="Every overflow site. Every spill hour. Whether there's a publicly confirmed contract to address it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700;800&family=Ovo&display=swap" rel="stylesheet">
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;color:#1a1a1a;line-height:1.5}
+body{font-family:'Mulish',sans-serif;background:#fff;color:#1a1a1a;line-height:1.5}
 
 /* ── Hero ── */
 #hero{background:#0a0a0a;color:#fff;padding:60px 24px 50px;text-align:center;position:relative;overflow:hidden}
 @media(min-width:768px){#hero{padding:100px 48px 80px}}
 #hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(transparent,rgba(10,10,10,0.3))}
 .hero-kicker{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.35);margin-bottom:20px}
-.hero-headline{font-family:Georgia,'Times New Roman',serif;font-size:clamp(28px,5vw,52px);font-weight:700;line-height:1.15;max-width:800px;margin:0 auto 16px;color:#fff}
+.hero-headline{font-family:'Ovo',serif;font-size:clamp(28px,5vw,52px);font-weight:700;line-height:1.15;max-width:800px;margin:0 auto 16px;color:#fff}
 .hero-headline em{font-style:normal;color:#e63946}
 .hero-sub{font-size:clamp(14px,2vw,18px);color:rgba(255,255,255,0.55);max-width:640px;margin:0 auto 40px;line-height:1.6}
 .hero-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:24px;margin-bottom:40px;position:relative;z-index:1}
@@ -54,14 +57,14 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .sb-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:24px;cursor:pointer;color:#999;line-height:1}
 .sb-close:hover{color:#333}
 .sb-inner{padding:28px 24px}
-.sb-inner h2{font-family:Georgia,serif;font-size:22px;font-weight:700;margin-bottom:4px}
+.sb-inner h2{font-family:'Ovo',serif;font-size:22px;font-weight:700;margin-bottom:4px}
 .sb-tag{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:20px}
 .sb-stat{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f0f0f0}
 .sb-stat-label{font-size:13px;color:#666}
 .sb-stat-val{font-size:14px;font-weight:600}
 .sb-stat-val.red{color:#e63946}
 .sb-stat-val.green{color:#2d9a46}
-.sb-spill-text{font-family:Georgia,serif;font-size:16px;line-height:1.6;color:#333;margin:20px 0;padding:16px;background:#fdf2f2;border-left:3px solid #e63946;border-radius:0 6px 6px 0}
+.sb-spill-text{font-family:'Ovo',serif;font-size:16px;line-height:1.6;color:#333;margin:20px 0;padding:16px;background:#fdf2f2;border-left:3px solid #e63946;border-radius:0 6px 6px 0}
 .sb-contract{margin:16px 0;padding:14px;background:#f8f8f8;border-radius:8px;border:1px solid #eee}
 .sb-contract-title{font-size:13px;font-weight:600;color:#1a1a1a}
 .sb-contract-sub{font-size:11px;color:#888;margin-top:2px}
@@ -76,7 +79,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 /* ── Suppliers section ── */
 #suppliers-section{padding:48px 24px;max-width:1000px;margin:0 auto}
 @media(min-width:768px){#suppliers-section{padding:64px 48px}}
-#suppliers-section h2{font-family:Georgia,serif;font-size:28px;font-weight:700;margin-bottom:8px}
+#suppliers-section h2{font-family:'Ovo',serif;font-size:28px;font-weight:700;margin-bottom:8px}
 #suppliers-section .sub{font-size:14px;color:#888;margin-bottom:32px}
 .sup-card{background:#f9f9f9;border:1px solid #eee;border-radius:10px;padding:24px;margin-bottom:24px}
 .sup-card h3{font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:4px}
@@ -93,7 +96,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 /* ── Footer ── */
 #footer{background:#0a0a0a;color:rgba(255,255,255,0.5);padding:48px 24px}
 #footer .inner{max-width:700px;margin:0 auto}
-#footer h3{font-family:Georgia,serif;color:#fff;font-size:20px;margin-bottom:16px}
+#footer h3{font-family:'Ovo',serif;color:#fff;font-size:20px;margin-bottom:16px}
 #footer p{font-size:13px;line-height:1.8;margin-bottom:12px}
 #footer a{color:rgba(255,255,255,0.7)}
 .credit{font-size:11px;opacity:0.3;margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06)}
