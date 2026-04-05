@@ -39,6 +39,18 @@ body{font-family:'Mulish',sans-serif;background:#fff;color:#1a1a1a;line-height:1
 .cta{display:inline-block;padding:14px 32px;border:2px solid rgba(255,255,255,0.2);border-radius:50px;color:#fff;text-decoration:none;font-size:14px;font-weight:500;transition:all 0.2s;position:relative;z-index:1}
 .cta:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.4)}
 
+/* ── Hero mobile: fit in viewport ── */
+@media(max-width:767px){
+  #hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:40px 20px 32px}
+  .hero-headline{font-size:clamp(22px,6vw,32px);margin-bottom:10px}
+  .hero-sub{font-size:13px;margin-bottom:20px;line-height:1.5}
+  .hero-stats{flex-wrap:nowrap;gap:16px;margin-bottom:20px}
+  .hs-val{font-size:clamp(24px,7vw,32px)}
+  .hs-label{font-size:9px;max-width:100px}
+  .hero-caveat{margin-bottom:16px}
+  .cta{padding:12px 28px;font-size:13px}
+}
+
 /* ── Context bar ── */
 #context{background:#f5f5f5;padding:24px;border-bottom:1px solid #eee}
 #context .inner{max-width:1000px;margin:0 auto;font-size:13px;color:#555;line-height:1.7}
@@ -84,14 +96,23 @@ body{font-family:'Mulish',sans-serif;background:#fff;color:#1a1a1a;line-height:1
 .sup-card{background:#f9f9f9;border:1px solid #eee;border-radius:10px;padding:24px;margin-bottom:24px}
 .sup-card h3{font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:4px}
 .sup-card .sup-desc{font-size:12px;color:#888;margin-bottom:16px}
-.sup-table{width:100%;border-collapse:collapse}
-.sup-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#999;padding:10px 12px;border-bottom:2px solid #e0e0e0;background:#f2f2f2}
-.sup-table td{padding:11px 12px;border-bottom:1px solid #eee;font-size:13px}
+.sup-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.sup-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#999;padding:10px 12px;border-bottom:2px solid #e0e0e0;background:#f2f2f2;overflow:hidden;text-overflow:ellipsis}
+.sup-table td{padding:11px 12px;border-bottom:1px solid #eee;font-size:13px;overflow:hidden;text-overflow:ellipsis;word-wrap:break-word}
 .sup-table tr:hover td{background:#f0f0f0}
 .sup-table tr:nth-child(even) td{background:#fafafa}
 .sup-name{font-weight:600;color:#1a1a1a}
 .sup-val{font-weight:600;color:#2d9a46;text-align:right}
 .sup-sites{text-align:right;color:#666;font-weight:500}
+
+/* ── Suppliers mobile ── */
+@media(max-width:767px){
+  .sup-card{padding:16px 12px}
+  .sup-table th{padding:8px 6px;font-size:9px;letter-spacing:0.5px}
+  .sup-table td{padding:9px 6px;font-size:11px}
+  .sup-val{font-size:11px}
+  .sup-name{font-size:11px}
+}
 
 /* ── Footer ── */
 #footer{background:#0a0a0a;color:rgba(255,255,255,0.5);padding:48px 24px}
@@ -248,6 +269,13 @@ function animateNum(id,target,fmt){
 function buildMap(){
   lmap=L.map('main-map',{zoomControl:true,scrollWheelZoom:true}).setView([50.95,-0.3],9);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OSM &copy; CARTO',maxZoom:18}).addTo(lmap);
+
+  // Southern Water coverage bounds (Kent to Hampshire)
+  var swBounds=L.latLngBounds([[50.6,-1.9],[51.4,1.4]]);
+
+  // Reset view control (crosshair icon, sits below zoom controls)
+  var ResetControl=L.Control.extend({options:{position:'topleft'},onAdd:function(){var btn=L.DomUtil.create('div','leaflet-bar leaflet-control');btn.innerHTML='<a href="#" title="Reset view" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;text-decoration:none;font-size:16px;color:#333;line-height:1" role="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg></a>';L.DomEvent.disableClickPropagation(btn);btn.querySelector('a').addEventListener('click',function(e){e.preventDefault();lmap.flyToBounds(swBounds,{padding:[20,20]})});return btn}});
+  new ResetControl().addTo(lmap);
 
   // Catchment outlines
   G.cat.forEach(c=>{
