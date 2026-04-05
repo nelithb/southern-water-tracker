@@ -124,7 +124,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="hs"><div class="hs-val amber" id="h-deadline">2035</div><div class="hs-label">Statutory deadline to fix overflows</div></div>
   </div>
   <div class="hero-caveat">Based on publicly available procurement records. Framework call-offs and internal work orders may not be reflected.</div>
-  <a href="#map-section" class="cta">Explore the network &#8595;</a>
+  <a href="#context" class="cta" style="background:#fff;color:#0a0a0a;border-color:#fff;font-weight:600">Explore the network &#8595;</a>
 </section>
 
 <!-- ══ CONTEXT ══ -->
@@ -502,11 +502,11 @@ function showSupplier(sid){
   openSB(h);
 }
 
-// Smooth scroll for CTA
+// Smooth scroll for CTA — scroll to context bar so both context and map are visible
 document.querySelector('.cta').addEventListener('click',e=>{
   e.preventDefault();
-  document.getElementById('map-section').scrollIntoView({behavior:'smooth'});
-  setTimeout(()=>lmap.invalidateSize(),500);
+  document.getElementById('context').scrollIntoView({behavior:'smooth'});
+  setTimeout(()=>lmap&&lmap.invalidateSize(),500);
 });
 </script>
 </body>
