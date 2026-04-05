@@ -25,9 +25,9 @@ body{font-family:'Mulish',sans-serif;background:#fff;color:#1a1a1a;line-height:1
 @media(min-width:768px){#hero{padding:100px 48px 80px}}
 #hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(transparent,rgba(10,10,10,0.3))}
 .hero-kicker{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.35);margin-bottom:20px}
-.hero-headline{font-family:'Ovo',serif;font-size:clamp(28px,5vw,52px);font-weight:700;line-height:1.15;max-width:800px;margin:0 auto 16px;color:#fff}
+.hero-headline{font-family:'Ovo',serif;font-size:clamp(28px,5vw,52px);font-weight:700;line-height:1.15;max-width:1000px;margin:0 auto 16px;color:#fff}
 .hero-headline em{font-style:normal;color:#e63946}
-.hero-sub{font-size:clamp(14px,2vw,18px);color:rgba(255,255,255,0.55);max-width:640px;margin:0 auto 40px;line-height:1.6}
+.hero-sub{font-size:clamp(14px,2vw,18px);color:rgba(255,255,255,0.55);max-width:1000px;margin:0 auto 40px;line-height:1.6}
 .hero-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:24px;margin-bottom:40px;position:relative;z-index:1}
 @media(min-width:768px){.hero-stats{gap:48px}}
 .hs{text-align:center;display:flex;flex-direction:column;align-items:center}
@@ -35,13 +35,13 @@ body{font-family:'Mulish',sans-serif;background:#fff;color:#1a1a1a;line-height:1
 .hs-val.red{color:#e63946}
 .hs-val.amber{color:#f4a261}
 .hs-label{font-size:clamp(10px,1.5vw,13px);color:rgba(255,255,255,0.4);margin-top:6px;max-width:180px;text-align:center}
-.hero-caveat{font-size:10px;color:rgba(255,255,255,0.2);margin-bottom:30px}
+.hero-caveat{font-size:10px;color:rgba(255,255,255,0.2);margin-bottom:30px;margin-top:0}
 .cta{display:inline-block;padding:14px 32px;border:2px solid rgba(255,255,255,0.2);border-radius:50px;color:#fff;text-decoration:none;font-size:14px;font-weight:500;transition:all 0.2s;position:relative;z-index:1}
 .cta:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.4)}
 
 /* ── Context bar ── */
 #context{background:#f5f5f5;padding:24px;border-bottom:1px solid #eee}
-#context .inner{max-width:800px;margin:0 auto;font-size:13px;color:#555;line-height:1.7}
+#context .inner{max-width:1000px;margin:0 auto;font-size:13px;color:#555;line-height:1.7}
 #context strong{color:#1a1a1a}
 
 /* ── Map ── */
@@ -95,7 +95,7 @@ body{font-family:'Mulish',sans-serif;background:#fff;color:#1a1a1a;line-height:1
 
 /* ── Footer ── */
 #footer{background:#0a0a0a;color:rgba(255,255,255,0.5);padding:48px 24px}
-#footer .inner{max-width:700px;margin:0 auto}
+#footer .inner{max-width:1000px;margin:0 auto}
 #footer h3{font-family:'Ovo',serif;color:#fff;font-size:20px;margin-bottom:16px}
 #footer p{font-size:13px;line-height:1.8;margin-bottom:12px}
 #footer a{color:rgba(255,255,255,0.7)}
@@ -126,8 +126,8 @@ body{font-family:'Mulish',sans-serif;background:#fff;color:#1a1a1a;line-height:1
     <div class="hs"><div class="hs-val red" id="h-unverified">—</div><div class="hs-label">Sites with no publicly verified spend</div></div>
     <div class="hs"><div class="hs-val amber" id="h-deadline">2035</div><div class="hs-label">Statutory deadline to fix overflows</div></div>
   </div>
+  <a href="#context" class="cta" style="background:#fff;color:#0a0a0a;border-color:#fff;font-weight:600;margin-bottom:30px">Explore the network &#8595;</a>
   <div class="hero-caveat">Based on publicly available procurement records. Framework call-offs and internal work orders may not be reflected.</div>
-  <a href="#context" class="cta" style="background:#fff;color:#0a0a0a;border-color:#fff;font-weight:600">Explore the network &#8595;</a>
 </section>
 
 <!-- ══ CONTEXT ══ -->
