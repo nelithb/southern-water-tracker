@@ -2,3 +2,12 @@
 *.pyc
 __pycache__
 .claude/
+credentials.json
+
+# Data files kept on disk, not in git
+*/data/
+*/outreach/
+*/graph.json
+*/graph_with_procurement.json
+*/nodes.csv
+*/edges.csv
